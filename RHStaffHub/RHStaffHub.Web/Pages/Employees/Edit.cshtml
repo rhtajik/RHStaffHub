@@ -1,0 +1,91 @@
+﻿@page "{id:guid}"
+@model RHStaffHub.Web.Pages.Employees.EditModel
+@{
+    ViewData["Title"] = "Rediger Medarbejder";
+}
+
+<div class="container">
+    <h1 class="mb-4">Rediger Medarbejder</h1>
+
+    <div class="row">
+        <div class="col-md-6">
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Employee.Id" />
+
+                <div asp-validation-summary="All" class="text-danger"></div>
+
+                <h5>Personlige Oplysninger</h5>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Employee.FirstName" class="form-label">Fornavn</label>
+                        <input asp-for="Employee.FirstName" class="form-control" />
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label asp-for="Employee.LastName" class="form-label">Efternavn</label>
+                        <input asp-for="Employee.LastName" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Employee.Email" class="form-label">Email</label>
+                    <input asp-for="Employee.Email" class="form-control" readonly />
+                    <small class="text-muted">Email kan ikke ændres</small>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Employee.PhoneNumber" class="form-label">Telefon</label>
+                    <input asp-for="Employee.PhoneNumber" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Employee.EmployeeNumber" class="form-label">Medarbejder Nummer</label>
+                    <input asp-for="Employee.EmployeeNumber" class="form-control" />
+                </div>
+
+                <hr />
+                <h5>Ansættelse</h5>
+
+                <div class="mb-3">
+                    <label asp-for="Employee.Role" class="form-label">Rolle</label>
+                    <select asp-for="Employee.Role" class="form-select" asp-items="Model.Roles" disabled="@(!Model.IsAdmin)">
+                    </select>
+                    @if (!Model.IsAdmin)
+                    {
+                        <small class="text-muted">Kun administratorer kan ændre roller</small>
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Employee.PrimaryDepartmentId" class="form-label">Primær Afdeling</label>
+                    <select asp-for="Employee.PrimaryDepartmentId" class="form-select" asp-items="Model.Departments">
+                        <option value="">Ingen afdeling</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Employee.HourlyRate" class="form-label">Timeløn (DKK)</label>
+                    <input asp-for="Employee.HourlyRate" type="number" step="0.01" class="form-control" />
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input asp-for="Employee.IsActive" class="form-check-input" />
+                    <label asp-for="Employee.IsActive" class="form-check-label">Aktiv</label>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Gem Ændringer</button>
+                    <a asp-page="./Index" class="btn btn-outline-secondary">Annuller</a>
+                    <button type="submit" asp-page-handler="ResetPassword" class="btn btn-warning"
+                            onclick="return confirm('Nulstil adgangskode til standard?');">
+                        Nulstil Adgangskode
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

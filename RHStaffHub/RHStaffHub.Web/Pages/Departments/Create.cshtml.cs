@@ -30,23 +30,44 @@ public class CreateModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!ModelState.IsValid)
-            return Page();
+        Console.WriteLine(">>> POST STARTET <<<");
+
+        // Midlertidigt: Ignorer ModelState
+        // if (!ModelState.IsValid)
+        // {
+        //     return Page();
+        // }
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId == null) return RedirectToPage("/Account/Login");
+        if (userId == null)
+        {
+            Console.WriteLine(">>> INGEN BRUGER <<<");
+            return RedirectToPage("/Account/Login");
+        }
 
         var user = await _userManager.FindByIdAsync(userId);
-        if (user == null) return RedirectToPage("/Account/Login");
+        if (user == null)
+        {
+            Console.WriteLine(">>> BRUGER IKKE FUNDET <<<");
+            return RedirectToPage("/Account/Login");
+        }
 
-        // Hent virksomhed
+        Console.WriteLine($"Bruger: {user.Email}, Tenant: {user.TenantId}");
+
+        // Hent eller opret virksomhed
         var company = await _context.Companies
             .FirstOrDefaultAsync(c => c.TenantId == user.TenantId);
 
         if (company == null)
         {
-            ModelState.AddModelError("", "Ingen virksomhed fundet");
-            return Page();
+            Console.WriteLine(">>> OPPRETTER VIRKSOMHED <<<");
+            company = new Company
+            {
+                Name = "Min Virksomhed",
+                TenantId = user.TenantId
+            };
+            _context.Companies.Add(company);
+            await _context.SaveChangesAsync();
         }
 
         // Sæt værdier
@@ -54,8 +75,12 @@ public class CreateModel : PageModel
         Department.CompanyId = company.Id;
         Department.IsActive = true;
 
+        Console.WriteLine($"Gemmer: {Department.Name}, {Department.Address}");
+
         _context.Departments.Add(Department);
         await _context.SaveChangesAsync();
+
+        Console.WriteLine(">>> GEMT! <<<");
 
         return RedirectToPage("./Index");
     }

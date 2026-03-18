@@ -1,0 +1,79 @@
+﻿@page
+@model RHStaffHub.Web.Pages.Shifts.IndexModel
+@{
+    ViewData["Title"] = "Vagtplan";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Vagtplan</h1>
+        <a asp-page="./Create" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Ny Vagt
+        </a>
+    </div>
+
+    <!-- Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Uge</label>
+                    <input type="week" name="Week" class="form-control" value="@Model.CurrentWeek" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Afdeling</label>
+                    <select name="DepartmentId" class="form-select" asp-items="Model.Departments">
+                        <option value="">Alle afdelinger</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Vis</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.Shifts.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Dato</th>
+                        <th>Tid</th>
+                        <th>Afdeling</th>
+                        <th>Medarbejder</th>
+                        <th>Status</th>
+                        <th>Handlinger</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var shift in Model.Shifts)
+                    {
+                        <tr>
+                            <td>@shift.StartTime.ToString("dddd dd/MM")</td>
+                            <td>@shift.StartTime.ToString("HH:mm") - @shift.EndTime.ToString("HH:mm")</td>
+                            <td>@shift.Department?.Name</td>
+                            <td>@(shift.Employee?.FullName ?? "Åben vagt")</td>
+                            <td>
+                                <span class="badge bg-@(shift.Status == "Scheduled" ? "primary" : shift.Status == "Confirmed" ? "success" : "secondary")">
+                                    @shift.Status
+                                </span>
+                            </td>
+                            <td>
+                                <a asp-page="./Edit" asp-route-id="@shift.Id" class="btn btn-sm btn-outline-primary">Rediger</a>
+                                <a asp-page="./Assign" asp-route-id="@shift.Id" class="btn btn-sm btn-outline-success">Tildel</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            Ingen vagter i denne periode. <a asp-page="./Create">Opret en vagt</a>.
+        </div>
+    }
+</div>

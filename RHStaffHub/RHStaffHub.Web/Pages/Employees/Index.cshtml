@@ -1,0 +1,69 @@
+﻿@page
+@model RHStaffHub.Web.Pages.Employees.IndexModel
+@{
+    ViewData["Title"] = "Medarbejdere";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Medarbejdere</h1>
+        <a asp-page="./Create" class="btn btn-success">
+            <i class="bi bi-person-plus"></i> Ny Medarbejder
+        </a>
+    </div>
+
+    @if (Model.Employees.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Navn</th>
+                        <th>Email</th>
+                        <th>Rolle</th>
+                        <th>Afdeling</th>
+                        <th>Timeløn</th>
+                        <th>Status</th>
+                        <th>Handlinger</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var employee in Model.Employees)
+                    {
+                        <tr>
+                            <td>@employee.FullName</td>
+                            <td>@employee.Email</td>
+                            <td>
+                                <span class="badge bg-@(employee.Role == "Admin" ? "danger" : employee.Role == "Manager" ? "warning" : "info")">
+                                    @employee.Role
+                                </span>
+                            </td>
+                            <td>@(employee.PrimaryDepartment?.Name ?? "-")</td>
+                            <td>@employee.HourlyRate.ToString("C")</td>
+                            <td>
+                                @if (employee.IsActive)
+                                {
+                                    <span class="badge bg-success">Aktiv</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Inaktiv</span>
+                                }
+                            </td>
+                            <td>
+                                <a asp-page="./Edit" asp-route-id="@employee.Id" class="btn btn-sm btn-outline-primary">Rediger</a>
+                                <a asp-page="./Details" asp-route-id="@employee.Id" class="btn btn-sm btn-outline-secondary">Detaljer</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            Ingen medarbejdere endnu. <a asp-page="./Create">Opret den første medarbejder</a>.
+        </div>
+    }
+</div>

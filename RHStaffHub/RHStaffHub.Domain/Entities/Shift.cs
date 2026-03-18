@@ -36,4 +36,5 @@ public class Shift
     public string? RecurrencePattern { get; set; }
 
     public string TenantId { get; set; } = string.Empty;
+    public TimeSpan Duration => EndTime - StartTime;
 }

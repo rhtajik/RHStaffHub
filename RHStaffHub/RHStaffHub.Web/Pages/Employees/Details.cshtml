@@ -1,0 +1,98 @@
+﻿@page "{id:guid}"
+@model RHStaffHub.Web.Pages.Employees.DetailsModel
+@{
+    ViewData["Title"] = "Medarbejderdetaljer";
+}
+
+<div class="container">
+    <h1 class="mb-4">@Model.Employee.FullName</h1>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Personlige Oplysninger</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3">Navn</dt>
+                        <dd class="col-sm-9">@Model.Employee.FullName</dd>
+
+                        <dt class="col-sm-3">Email</dt>
+                        <dd class="col-sm-9">@Model.Employee.Email</dd>
+
+                        <dt class="col-sm-3">Telefon</dt>
+                        <dd class="col-sm-9">@(Model.Employee.PhoneNumber ?? "-")</dd>
+
+                        <dt class="col-sm-3">Medarbejder Nummer</dt>
+                        <dd class="col-sm-9">@(Model.Employee.EmployeeNumber ?? "-")</dd>
+
+                        <dt class="col-sm-3">Oprettet</dt>
+                        <dd class="col-sm-9">@Model.Employee.CreatedAt.ToString("dd/MM/yyyy")</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Ansættelse</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3">Rolle</dt>
+                        <dd class="col-sm-9">
+                            <span class="badge bg-@(Model.Employee.Role == "Admin" ? "danger" : Model.Employee.Role == "Manager" ? "warning" : "info")">
+                                @Model.Employee.Role
+                            </span>
+                        </dd>
+
+                        <dt class="col-sm-3">Primær Afdeling</dt>
+                        <dd class="col-sm-9">@(Model.Employee.PrimaryDepartment?.Name ?? "-")</dd>
+
+                        <dt class="col-sm-3">Timeløn</dt>
+                        <dd class="col-sm-9">@Model.Employee.HourlyRate.ToString("C")</dd>
+
+                        <dt class="col-sm-3">Status</dt>
+                        <dd class="col-sm-9">
+                            @if (Model.Employee.IsActive)
+                            {
+                                <span class="badge bg-success">Aktiv</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Inaktiv</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Statistik (Denne Måned)</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3">Timer</dt>
+                        <dd class="col-sm-9">@Model.MonthlyHours.ToString("F1") timer</dd>
+
+                        <dt class="col-sm-3">Løn</dt>
+                        <dd class="col-sm-9">@Model.MonthlyWage.ToString("C")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Handlinger</h5>
+                </div>
+                <div class="card-body">
+                    <a asp-page="./Edit" asp-route-id="@Model.Employee.Id" class="btn btn-primary w-100 mb-2">Rediger</a>
+                    <a asp-page="./Index" class="btn btn-outline-secondary w-100">Tilbage til liste</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
