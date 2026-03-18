@@ -1,0 +1,129 @@
+﻿@page
+@model RHStaffHub.Web.Pages.Dashboard.IndexModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container-fluid">
+    <h1 class="mt-4">Velkommen, @Model.CurrentUser?.FullName!</h1>
+    <p class="text-muted">@Model.CurrentUser?.Role - @Model.CompanyName</p>
+
+    <div class="row mt-4">
+        <!-- Clock In/Out Kort -->
+        <div class="col-md-4">
+            <div class="card shadow @(Model.HasActiveTimeEntry ? "border-warning" : "border-success")">
+                <div class="card-header @(Model.HasActiveTimeEntry ? "bg-warning" : "bg-success") text-white">
+                    <h5 class="mb-0">Timeregistrering</h5>
+                </div>
+                <div class="card-body text-center">
+                    @if (Model.HasActiveTimeEntry)
+                    {
+                        <h3 class="text-warning">Du er clocket ind</h3>
+                        <p>Startet: @Model.ActiveTimeEntry?.ClockIn.ToString("HH:mm")</p>
+                        <form method="post" asp-page-handler="ClockOut">
+                            <button type="submit" class="btn btn-danger btn-lg w-100">
+                                <i class="bi bi-box-arrow-right"></i> Clock Ud
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <h3 class="text-muted">Du er ikke clocket ind</h3>
+                        <form method="post" asp-page-handler="ClockIn">
+                            <div class="mb-3">
+                                <select asp-for="SelectedDepartmentId" class="form-select" asp-items="Model.Departments">
+                                    <option value="">Vælg afdeling...</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-success btn-lg w-100">
+                                <i class="bi bi-box-arrow-in-right"></i> Clock Ind
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Dagens Vagter -->
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Dagens Vagter</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.TodaysShifts.Any())
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var shift in Model.TodaysShifts)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>@shift.StartTime.ToString("HH:mm") - @shift.EndTime.ToString("HH:mm")</strong>
+                                        <br />
+                                        <small class="text-muted">@shift.Department?.Name</small>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">@shift.Status</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center mb-0">Ingen vagter i dag</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Hurtig Statistik -->
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Denne Måned</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Timer:</span>
+                        <strong>@Model.MonthlyHours.ToString("F1")</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Estimeret løn:</span>
+                        <strong>@Model.EstimatedWage.ToString("C")</strong>
+                    </div>
+                    <hr />
+                    <a asp-page="/TimeEntries/Index" class="btn btn-outline-primary btn-sm w-100">Se alle timer</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin/Manager Menu -->
+    @if (Model.IsAdminOrManager)
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <h4>Administration</h4>
+            </div>
+            <div class="col-md-3">
+                <a asp-page="/Employees/Index" class="btn btn-outline-dark w-100 mb-2">
+                    <i class="bi bi-people"></i> Medarbejdere
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-page="/Departments/Index" class="btn btn-outline-dark w-100 mb-2">
+                    <i class="bi bi-building"></i> Afdelinger
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-page="/Shifts/Index" class="btn btn-outline-dark w-100 mb-2">
+                    <i class="bi bi-calendar-week"></i> Vagtplan
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-page="/Reports/Index" class="btn btn-outline-dark w-100 mb-2">
+                    <i class="bi bi-graph-up"></i> Rapporter
+                </a>
+            </div>
+        </div>
+    }
+</div>

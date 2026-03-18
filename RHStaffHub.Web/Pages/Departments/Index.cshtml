@@ -1,0 +1,48 @@
+﻿@page
+@model RHStaffHub.Web.Pages.Departments.IndexModel
+@{
+    ViewData["Title"] = "Afdelinger";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Afdelinger</h1>
+        <a asp-page="./Create" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Ny Afdeling
+        </a>
+    </div>
+
+    @if (Model.Departments.Any())
+    {
+        <div class="row">
+            @foreach (var dept in Model.Departments)
+            {
+                <div class="col-md-4 mb-3">
+                    <div class="card shadow">
+                        <div class="card-body">
+                            <h5 class="card-title">@dept.Name</h5>
+                            <p class="card-text text-muted">
+                                <i class="bi bi-geo-alt"></i> @(dept.Address ?? "Ingen adresse")<br />
+                                <i class="bi bi-upc-scan"></i> @(dept.LocationId ?? "Intet ID")
+                            </p>
+                            @if (dept.GpsLatitude.HasValue && dept.GpsLongitude.HasValue)
+                            {
+                                <span class="badge bg-info">GPS aktiveret</span>
+                            }
+                            <div class="mt-3">
+                                <a asp-page="./Edit" asp-route-id="@dept.Id" class="btn btn-sm btn-outline-primary">Rediger</a>
+                                <a asp-page="./Details" asp-route-id="@dept.Id" class="btn btn-sm btn-outline-secondary">Detaljer</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            Ingen afdelinger endnu. <a asp-page="./Create">Opret den første afdeling</a>.
+        </div>
+    }
+</div>

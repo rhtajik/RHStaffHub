@@ -1,0 +1,71 @@
+﻿@page
+@model RHStaffHub.Web.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = "Opret virksomhed";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">Opret ny virksomhed</h3>
+                <small>Start din gratis prøveperiode</small>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                    <h5>Virksomhed</h5>
+                    <div class="mb-3">
+                        <label asp-for="Input.CompanyName" class="form-label">Virksomhedsnavn</label>
+                        <input asp-for="Input.CompanyName" class="form-control" />
+                        <span asp-validation-for="Input.CompanyName" class="text-danger"></span>
+                    </div>
+
+                    <h5 class="mt-4">Administrator</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.FirstName" class="form-label">Fornavn</label>
+                            <input asp-for="Input.FirstName" class="form-control" />
+                            <span asp-validation-for="Input.FirstName" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Input.LastName" class="form-label">Efternavn</label>
+                            <input asp-for="Input.LastName" class="form-control" />
+                            <span asp-validation-for="Input.LastName" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Email" class="form-label">Email</label>
+                        <input asp-for="Input.Email" class="form-control" />
+                        <span asp-validation-for="Input.Email" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Password" class="form-label">Adgangskode</label>
+                        <input asp-for="Input.Password" type="password" class="form-control" />
+                        <span asp-validation-for="Input.Password" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.ConfirmPassword" class="form-label">Bekræft adgangskode</label>
+                        <input asp-for="Input.ConfirmPassword" type="password" class="form-control" />
+                        <span asp-validation-for="Input.ConfirmPassword" class="text-danger"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-success w-100">Opret virksomhed</button>
+                </form>
+
+                <hr />
+                <p class="text-center mb-0">
+                    Har du allerede en konto? <a asp-page="./Login">Log ind her</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
