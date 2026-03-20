@@ -1,0 +1,122 @@
+﻿@page
+@model RHStaffHub.Web.Pages.TimeEntries.MyTimeEntriesModel
+@{
+    ViewData["Title"] = "Mine Timer";
+}
+
+<div class="container-fluid">
+    <h1 class="mb-4">Mine Timer</h1>
+
+    <!-- Aktiv Clock-in Status -->
+    @if (Model.ActiveEntry != null)
+    {
+        <div class="alert alert-warning">
+            <h5><i class="bi bi-clock-history"></i> Du er clocket ind</h5>
+            <p>Startet: @Model.ActiveEntry.ClockIn.ToString("HH:mm dd/MM-yyyy")</p>
+            <p>Afdeling: @Model.ActiveEntry.Department?.Name</p>
+            <form method="post" asp-page-handler="ClockOut" class="d-inline">
+                <button type="submit" class="btn btn-danger">
+                    <i class="bi bi-box-arrow-right"></i> Clock Ud
+                </button>
+            </form>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-success">
+            <h5><i class="bi bi-clock"></i> Du er ikke clocket ind</h5>
+            <form method="post" asp-page-handler="ClockIn" class="row g-3">
+                <div class="col-md-4">
+                    <select name="DepartmentId" class="form-select" asp-items="Model.Departments" required>
+                        <option value="">Vælg afdeling...</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-box-arrow-in-right"></i> Clock Ind
+                    </button>
+                </div>
+            </form>
+        </div>
+    }
+
+    <!-- Oversigt Denne Måned -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5>Timer Denne Måned</h5>
+                    <h3>@Model.MonthlyHours.ToString("F1")</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5>Estimeret Løn</h5>
+                    <h3>@Model.MonthlyWage.ToString("C")</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5>Godkendte Vagter</h5>
+                    <h3>@Model.ApprovedCount</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historik -->
+    <h4>Historik</h4>
+    @if (Model.TimeEntries.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Dato</th>
+                        <th>Afdeling</th>
+                        <th>Start</th>
+                        <th>Slut</th>
+                        <th>Timer</th>
+                        <th>Løn</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in Model.TimeEntries)
+                    {
+                        <tr>
+                            <td>@entry.ClockIn.ToString("dd/MM-yyyy")</td>
+                            <td>@entry.Department?.Name</td>
+                            <td>@entry.ClockIn.ToString("HH:mm")</td>
+                            <td>@(entry.ClockOut?.ToString("HH:mm") ?? "-")</td>
+                            <td>
+                                @{
+                                    var hours = entry.ClockOut.HasValue
+                                    ? (entry.ClockOut.Value - entry.ClockIn - (entry.BreakDuration ?? TimeSpan.Zero)).TotalHours
+                                    : 0;
+                                }
+                                @hours.ToString("F2")
+                            </td>
+                            <td>@(entry.CalculatedWage?.ToString("C") ?? "-")</td>
+                            <td>
+                                <span class="badge bg-@(entry.Status == "Approved" ? "success" : entry.Status == "Rejected" ? "danger" : "warning")">
+                                    @entry.Status
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            Du har ingen registrerede timer endnu.
+        </div>
+    }
+</div>

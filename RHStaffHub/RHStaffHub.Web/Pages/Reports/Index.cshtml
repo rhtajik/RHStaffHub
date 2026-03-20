@@ -1,0 +1,121 @@
+﻿@page
+@model RHStaffHub.Web.Pages.Reports.IndexModel
+@{
+    ViewData["Title"] = "Rapporter";
+}
+
+<div class="container-fluid">
+    <h1 class="mb-4">Rapporter</h1>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="post">
+                @Html.AntiForgeryToken()
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Fra Dato</label>
+                        <input type="date" name="FromDate" class="form-control" value="@Model.FromDate?.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Til Dato</label>
+                        <input type="date" name="ToDate" class="form-control" value="@Model.ToDate?.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Afdeling</label>
+                        <select name="DepartmentId" class="form-select" asp-items="Model.Departments">
+                            <option value="">Alle afdelinger</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Medarbejder</label>
+                        <select name="EmployeeId" class="form-select" asp-items="Model.Employees">
+                            <option value="">Alle medarbejdere</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-12">
+                        <button type="submit" asp-page-handler="View" class="btn btn-primary">Vis</button>
+                        <button type="submit" asp-page-handler="Export" class="btn btn-success">Eksportér CSV</button>
+                        <button type="submit" asp-page-handler="ExportExcel" class="btn btn-info">Eksportér Excel</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5>Samlet Timer</h5>
+                    <h3>@Model.TotalHours.ToString("F1")</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5>Samlet Lønudgift</h5>
+                    <h3>@Model.TotalWage.ToString("C")</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5>Gennemsnitlig Timeløn</h5>
+                    <h3>@Model.AverageHourlyRate.ToString("C")</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5>Antal Vagter</h5>
+                    <h3>@Model.TotalShifts</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4>Detaljeret Oversigt</h4>
+    @if (Model.ReportData.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Medarbejder</th>
+                        <th>Afdeling</th>
+                        <th>Timer</th>
+                        <th>Løn</th>
+                        <th>Gns. Timeløn</th>
+                        <th>Godkendte</th>
+                        <th>Afventer</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.ReportData)
+                    {
+                        <tr>
+                            <td>@item.EmployeeName</td>
+                            <td>@item.DepartmentName</td>
+                            <td>@item.TotalHours.ToString("F2")</td>
+                            <td>@item.TotalWage.ToString("C")</td>
+                            <td>@item.AverageHourlyRate.ToString("C")</td>
+                            <td>@item.ApprovedCount</td>
+                            <td>@item.PendingCount</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            Ingen data at vise for den valgte periode.
+        </div>
+    }
+</div>

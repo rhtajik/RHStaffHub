@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using RHStaffHub.Domain.Entities;
 using RHStaffHub.Web.Data;
+using System.Globalization;
 using System.Security.Claims;
 
 namespace RHStaffHub.Web.Pages.Shifts;
@@ -34,12 +35,13 @@ public class IndexModel : PageModel
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null) return;
 
-        // Sæt standard uge (denne uge)
+        // Sæt standard uge (denne uge) - korrekt ISO uge format
         if (string.IsNullOrEmpty(week))
         {
             var today = DateTime.Today;
-            var startOfWeek = today.AddDays(-(int)today.DayOfWeek + (int)DayOfWeek.Monday);
-            CurrentWeek = startOfWeek.ToString("yyyy-'W'ww");
+            var year = today.Year;
+            var weekNumber = ISOWeek.GetWeekOfYear(today);
+            CurrentWeek = $"{year}-W{weekNumber:D2}";
         }
         else
         {
@@ -73,26 +75,48 @@ public class IndexModel : PageModel
             .ToListAsync();
     }
 
-    private static (DateTime start, DateTime end) ParseWeek(string weekString)
+    private static (DateTime start, DateTime end) ParseWeek(string? weekString)
     {
-        // Format: 2025-W12
-        var parts = weekString.Split('-');
-        if (parts.Length != 2 || !parts[0].StartsWith("20") || !parts[1].StartsWith("W"))
+        // Hvis ugen er tom eller ugyldig, brug denne uge
+        if (string.IsNullOrWhiteSpace(weekString))
         {
-            var today = DateTime.Today;
-            var start = today.AddDays(-(int)today.DayOfWeek + (int)DayOfWeek.Monday);
-            return (start, start.AddDays(6));
+            return GetCurrentWeek();
         }
 
-        var year = int.Parse(parts[0]);
-        var week = int.Parse(parts[1].Substring(1));
+        try
+        {
+            // Format: 2025-W12 eller 2025-W01
+            if (!weekString.Contains("-W"))
+            {
+                return GetCurrentWeek();
+            }
 
-        // Beregn første mandag i ugen
-        var jan1 = new DateTime(year, 1, 1);
-        var daysOffset = DayOfWeek.Monday - jan1.DayOfWeek;
-        var firstMonday = jan1.AddDays(daysOffset);
-        var startDate = firstMonday.AddDays((week - 1) * 7);
+            var parts = weekString.Split("-W");
+            if (parts.Length != 2 || !int.TryParse(parts[0], out var year) || !int.TryParse(parts[1], out var weekNumber))
+            {
+                return GetCurrentWeek();
+            }
 
-        return (startDate, startDate.AddDays(6));
+            // Brug ISOWeek til at få korrekte datoer
+            var startDate = ISOWeek.ToDateTime(year, weekNumber, DayOfWeek.Monday);
+            var endDate = startDate.AddDays(6).AddHours(23).AddMinutes(59);
+
+            return (startDate, endDate);
+        }
+        catch
+        {
+            return GetCurrentWeek();
+        }
+    }
+
+    private static (DateTime start, DateTime end) GetCurrentWeek()
+    {
+        var today = DateTime.Today;
+        var year = today.Year;
+        var weekNumber = ISOWeek.GetWeekOfYear(today);
+        var startDate = ISOWeek.ToDateTime(year, weekNumber, DayOfWeek.Monday);
+        var endDate = startDate.AddDays(6).AddHours(23).AddMinutes(59);
+
+        return (startDate, endDate);
     }
 }

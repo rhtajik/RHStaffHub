@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using RHStaffHub.Domain.Entities;
 using RHStaffHub.Web.Data;
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
 namespace RHStaffHub.Web.Pages.Shifts;
@@ -22,17 +23,31 @@ public class CreateModel : PageModel
         _userManager = userManager;
     }
 
+    // Separate properties i stedet for at binde til Shift objektet
     [BindProperty]
-    public Shift Shift { get; set; } = new();
+    [Required(ErrorMessage = "Vælg en afdeling")]
+    public Guid? DepartmentId { get; set; }
 
     [BindProperty]
+    public Guid? EmployeeId { get; set; }
+
+    [BindProperty]
+    [Required(ErrorMessage = "Vælg en dato")]
     public DateTime StartDate { get; set; } = DateTime.Today;
 
     [BindProperty]
-    public TimeSpan StartTime { get; set; } = new TimeSpan(8, 0, 0); // 08:00
+    [Required(ErrorMessage = "Vælg start tid")]
+    public TimeSpan StartTime { get; set; } = new TimeSpan(8, 0, 0);
 
     [BindProperty]
-    public TimeSpan EndTime { get; set; } = new TimeSpan(16, 0, 0); // 16:00
+    [Required(ErrorMessage = "Vælg slut tid")]
+    public TimeSpan EndTime { get; set; } = new TimeSpan(16, 0, 0);
+
+    [BindProperty]
+    public string? Title { get; set; }
+
+    [BindProperty]
+    public string? Notes { get; set; }
 
     public List<SelectListItem> Departments { get; set; } = new();
     public List<SelectListItem> Employees { get; set; } = new();
@@ -45,17 +60,7 @@ public class CreateModel : PageModel
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null) return;
 
-        // Hent afdelinger
-        Departments = await _context.Departments
-            .Where(d => d.TenantId == user.TenantId && d.IsActive)
-            .Select(d => new SelectListItem { Value = d.Id.ToString(), Text = d.Name })
-            .ToListAsync();
-
-        // Hent medarbejdere
-        Employees = await _context.Users
-            .Where(u => u.TenantId == user.TenantId && u.IsActive && u.Role != "Admin")
-            .Select(u => new SelectListItem { Value = u.Id.ToString(), Text = u.FullName })
-            .ToListAsync();
+        await LoadDropdowns(user.TenantId);
     }
 
     public async Task<IActionResult> OnPostAsync()
@@ -66,10 +71,10 @@ public class CreateModel : PageModel
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null) return RedirectToPage("/Account/Login");
 
-        // Validering
-        if (Shift.DepartmentId == Guid.Empty)
+        // Manuel validering
+        if (!DepartmentId.HasValue || DepartmentId.Value == Guid.Empty)
         {
-            ModelState.AddModelError("Shift.DepartmentId", "Vælg en afdeling");
+            ModelState.AddModelError("DepartmentId", "Vælg en afdeling");
         }
 
         if (EndTime <= StartTime)
@@ -79,26 +84,45 @@ public class CreateModel : PageModel
 
         if (!ModelState.IsValid)
         {
-            await OnGetAsync();
+            await LoadDropdowns(user.TenantId);
             return Page();
         }
 
-        // Sæt start og slut tidspunkter
-        Shift.StartTime = StartDate.Date + StartTime;
-        Shift.EndTime = StartDate.Date + EndTime;
-
-        // Hvis slut er før start (nattevagt), tilføj en dag
-        if (Shift.EndTime <= Shift.StartTime)
+        // Opret vagt objekt manuelt
+        var shift = new Shift
         {
-            Shift.EndTime = Shift.EndTime.AddDays(1);
+            DepartmentId = DepartmentId!.Value,
+            EmployeeId = EmployeeId,
+            StartTime = StartDate.Date + StartTime,
+            EndTime = StartDate.Date + EndTime,
+            Title = Title,
+            Notes = Notes,
+            TenantId = user.TenantId,
+            Status = EmployeeId.HasValue ? "Confirmed" : "Scheduled"
+        };
+
+        // Hvis nattevagt
+        if (shift.EndTime <= shift.StartTime)
+        {
+            shift.EndTime = shift.EndTime.AddDays(1);
         }
 
-        Shift.TenantId = user.TenantId;
-        Shift.Status = Shift.EmployeeId.HasValue ? "Confirmed" : "Scheduled";
-
-        _context.Shifts.Add(Shift);
+        _context.Shifts.Add(shift);
         await _context.SaveChangesAsync();
 
         return RedirectToPage("./Index");
+    }
+
+    private async Task LoadDropdowns(string tenantId)
+    {
+        Departments = await _context.Departments
+            .Where(d => d.TenantId == tenantId && d.IsActive)
+            .Select(d => new SelectListItem { Value = d.Id.ToString(), Text = d.Name })
+            .ToListAsync();
+
+        Employees = await _context.Users
+            .Where(u => u.TenantId == tenantId && u.IsActive && u.Role != "Admin")
+            .Select(u => new SelectListItem { Value = u.Id.ToString(), Text = u.FullName })
+            .ToListAsync();
     }
 }

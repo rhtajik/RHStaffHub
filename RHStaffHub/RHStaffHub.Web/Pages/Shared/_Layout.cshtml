@@ -12,8 +12,9 @@
     <header>
         <nav class="navbar navbar-expand-sm navbar-dark bg-primary border-bottom box-shadow mb-3">
             <div class="container">
-                <a class="navbar-brand" asp-page="/Dashboard/Index">
-                    <i class="bi bi-clock-history"></i> RH StaffHub
+                <a class="navbar-brand d-flex align-items-center" asp-page="/Dashboard/Index">
+                    <img src="~/images/logo.png" alt="Logo" class="logo-circle me-2" />
+                    <span>RH StaffHub</span>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
                     <span class="navbar-toggler-icon"></span>
@@ -25,12 +26,33 @@
                             <li class="nav-item">
                                 <a class="nav-link" asp-page="/Dashboard/Index">Dashboard</a>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-page="/TimeEntries/Index">Timer</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" asp-page="/Shifts/Index">Vagter</a>
-                            </li>
+                            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-page="/TimeEntries/Index">Timer</a>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-page="/TimeEntries/MyTimeEntries">Mine Timer</a>
+                                </li>
+                            }
+
+                            @* Vagter link - forskelligt for medarbejdere og admin/manager *@
+                            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-page="/Shifts/Index">Vagter</a>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-page="/Shifts/MyShifts">Mine Vagter</a>
+                                </li>
+                            }
+
                             @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
                             {
                                 <li class="nav-item dropdown">
@@ -81,7 +103,7 @@
 
     <footer class="border-top footer text-muted mt-5">
         <div class="container">
-            &copy; 2025 - RH StaffHub - Workforce Management
+            &copy; 2025 - RH StaffHub
         </div>
     </footer>
 

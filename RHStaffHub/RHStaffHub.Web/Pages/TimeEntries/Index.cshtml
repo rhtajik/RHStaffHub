@@ -1,0 +1,129 @@
+﻿@page
+@model RHStaffHub.Web.Pages.TimeEntries.IndexModel
+@{
+    ViewData["Title"] = "Timeregistreringer";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Timeregistreringer</h1>
+    </div>
+
+    <!-- Filter -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Fra Dato</label>
+                    <input type="date" name="FromDate" class="form-control" value="@Model.FromDate?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Til Dato</label>
+                    <input type="date" name="ToDate" class="form-control" value="@Model.ToDate?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="Status" class="form-select" asp-items="Model.StatusList">
+                        <option value="">Alle statusser</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary">Vis</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Oversigt -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5>Samlet Timer</h5>
+                    <h3>@Model.TotalHours.ToString("F1")</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5>Samlet Løn</h5>
+                    <h3>@Model.TotalWage.ToString("C")</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5>Afventer Godkendelse</h5>
+                    <h3>@Model.PendingCount</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.TimeEntries.Any())
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Dato</th>
+                        <th>Medarbejder</th>
+                        <th>Afdeling</th>
+                        <th>Start</th>
+                        <th>Slut</th>
+                        <th>Timer</th>
+                        <th>Løn</th>
+                        <th>Status</th>
+                        <th>Handlinger</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in Model.TimeEntries)
+                    {
+                        <tr>
+                            <td>@entry.ClockIn.ToString("dd/MM-yyyy")</td>
+                            <td>@entry.Employee?.FullName</td>
+                            <td>@entry.Department?.Name</td>
+                            <td>@entry.ClockIn.ToString("HH:mm")</td>
+                            <td>@(entry.ClockOut?.ToString("HH:mm") ?? "-")</td>
+                            <td>
+                                @{
+                                    var hours = entry.ClockOut.HasValue
+                                    ? (entry.ClockOut.Value - entry.ClockIn - (entry.BreakDuration ?? TimeSpan.Zero)).TotalHours
+                                    : 0;
+                                }
+                                @hours.ToString("F2")
+                            </td>
+                            <td>@(entry.CalculatedWage?.ToString("C") ?? "-")</td>
+                            <td>
+                                <span class="badge bg-@(entry.Status == "Approved" ? "success" : entry.Status == "Rejected" ? "danger" : "warning")">
+                                    @entry.Status
+                                </span>
+                            </td>
+                            <td>
+                                @if (entry.Status == "Pending" && entry.ClockOut.HasValue)
+                                {
+                                    <form method="post" asp-page-handler="Approve" asp-route-id="@entry.Id" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-success">Godkend</button>
+                                    </form>
+                                    <form method="post" asp-page-handler="Reject" asp-route-id="@entry.Id" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-danger">Afvis</button>
+                                    </form>
+                                }
+                                <a asp-page="./Details" asp-route-id="@entry.Id" class="btn btn-sm btn-outline-secondary">Detaljer</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            Ingen timeregistreringer i denne periode.
+        </div>
+    }
+</div>

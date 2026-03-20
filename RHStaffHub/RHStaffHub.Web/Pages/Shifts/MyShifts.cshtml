@@ -1,0 +1,76 @@
+﻿@page
+@model RHStaffHub.Web.Pages.Shifts.MyShiftsModel
+@{
+    ViewData["Title"] = "Mine Vagter";
+}
+
+<div class="container-fluid">
+    <h1 class="mb-4">Mine Vagter</h1>
+
+    <!-- Uge navigation -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <a asp-page="./MyShifts" asp-route-week="@Model.PreviousWeek" class="btn btn-outline-primary">
+            <i class="bi bi-chevron-left"></i> Forrige Uge
+        </a>
+        <h4 class="mb-0">Uge @Model.CurrentWeek</h4>
+        <a asp-page="./MyShifts" asp-route-week="@Model.NextWeek" class="btn btn-outline-primary">
+            Næste Uge <i class="bi bi-chevron-right"></i>
+        </a>
+    </div>
+
+    @if (Model.Shifts.Any())
+    {
+        <div class="row">
+            @foreach (var shift in Model.Shifts)
+            {
+                <div class="col-md-6 col-lg-4 mb-3">
+                    <div class="card shadow @GetCardClass(shift)">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>@shift.StartTime.ToString("dddd dd/MM")</span>
+                            <span class="badge bg-@GetBadgeClass(shift)">@shift.Status</span>
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">@shift.StartTime.ToString("HH:mm") - @shift.EndTime.ToString("HH:mm")</h5>
+                            <p class="card-text">
+                                <i class="bi bi-building"></i> @shift.Department?.Name<br />
+                                <i class="bi bi-clock"></i> @((shift.EndTime - shift.StartTime).TotalHours.ToString("F1")) timer
+                            </p>
+                            @if (!string.IsNullOrEmpty(shift.Title))
+                            {
+                                <p class="card-text"><strong>@shift.Title</strong></p>
+                            }
+                            @if (!string.IsNullOrEmpty(shift.Notes))
+                            {
+                                <p class="card-text text-muted">@shift.Notes</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            Du har ingen vagter i denne periode.
+        </div>
+    }
+</div>
+
+@functions {
+    string GetCardClass(Shift shift) => shift.Status switch
+    {
+        "Confirmed" => "border-success",
+        "Completed" => "border-secondary",
+        "Cancelled" => "border-danger opacity-50",
+        _ => "border-primary"
+    };
+
+    string GetBadgeClass(Shift shift) => shift.Status switch
+    {
+        "Confirmed" => "success",
+        "Completed" => "secondary",
+        "Cancelled" => "danger",
+        _ => "primary"
+    };
+}
