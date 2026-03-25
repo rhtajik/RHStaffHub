@@ -7,10 +7,31 @@
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Medarbejdere</h1>
-        <a asp-page="./Create" class="btn btn-success">
-            <i class="bi bi-person-plus"></i> Ny Medarbejder
-        </a>
+        <div class="d-flex gap-2">
+            @if (Model.ShowInactive)
+            {
+                <a asp-page="./Index" class="btn btn-outline-primary">
+                    <i class="bi bi-eye"></i> Vis Aktive
+                </a>
+            }
+            else
+            {
+                <a asp-page="./Index" asp-route-showInactive="true" class="btn btn-outline-secondary">
+                    <i class="bi bi-eye-slash"></i> Vis Inaktive
+                </a>
+            }
+            <a asp-page="./Create" class="btn btn-success">
+                <i class="bi bi-person-plus"></i> Ny Medarbejder
+            </a>
+        </div>
     </div>
+
+    @if (Model.ShowInactive)
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle"></i> Viser inaktive (slettede) medarbejdere
+        </div>
+    }
 
     @if (Model.Employees.Any())
     {
@@ -30,7 +51,7 @@
                 <tbody>
                     @foreach (var employee in Model.Employees)
                     {
-                        <tr>
+                        <tr class="@(!employee.IsActive ? "table-secondary" : "")">
                             <td>@employee.FullName</td>
                             <td>@employee.Email</td>
                             <td>
@@ -63,7 +84,14 @@
     else
     {
         <div class="alert alert-info">
-            Ingen medarbejdere endnu. <a asp-page="./Create">Opret den første medarbejder</a>.
+            @if (Model.ShowInactive)
+            {
+                <span>Ingen inaktive medarbejdere.</span>
+            }
+            else
+            {
+                <span>Ingen aktive medarbejdere. <a asp-page="./Create">Opret den første medarbejder</a>.</span>
+            }
         </div>
     }
 </div>

@@ -25,6 +25,10 @@ public class EditModel : PageModel
     [BindProperty]
     public ApplicationUser Employee { get; set; } = new();
 
+    // Property til Delete handler
+    [BindProperty(Name = "Employee.Id")]
+    public Guid DeleteEmployeeId { get; set; }
+
     public List<SelectListItem> Roles { get; set; } = new();
     public List<SelectListItem> Departments { get; set; } = new();
     public bool IsAdmin { get; set; }
@@ -51,24 +55,7 @@ public class EditModel : PageModel
             return Forbid();
         }
 
-        // Hent roller
-        Roles = new List<SelectListItem>
-        {
-            new SelectListItem { Value = "Employee", Text = "Medarbejder" },
-            new SelectListItem { Value = "Manager", Text = "Manager" }
-        };
-
-        if (IsAdmin)
-        {
-            Roles.Insert(0, new SelectListItem { Value = "Admin", Text = "Administrator" });
-        }
-
-        // Hent afdelinger
-        Departments = await _context.Departments
-            .Where(d => d.TenantId == currentUser.TenantId && d.IsActive)
-            .Select(d => new SelectListItem { Value = d.Id.ToString(), Text = d.Name })
-            .ToListAsync();
-
+        await LoadDropdowns(currentUser.TenantId);
         return Page();
     }
 
@@ -146,9 +133,61 @@ public class EditModel : PageModel
 
         if (result.Succeeded)
         {
-            // I en rigtig app: Send email til brugeren med den nye adgangskode
             TempData["Message"] = $"Adgangskode nulstillet. Midlertidig adgangskode: {newPassword}";
         }
+
+        return RedirectToPage("./Index");
+    }
+
+    // NY: Slet medarbejder (Soft Delete)
+    public async Task<IActionResult> OnPostDeleteAsync()
+    {
+        Console.WriteLine($">>> DELETE EMPLOYEE STARTET - ID: {DeleteEmployeeId} <<<");
+
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return RedirectToPage("/Account/Login");
+
+        var currentUser = await _userManager.FindByIdAsync(currentUserId);
+        if (currentUser == null) return RedirectToPage("/Account/Login");
+
+        var isAdmin = User.IsInRole("Admin");
+
+        // Find medarbejder
+        var existingUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == DeleteEmployeeId && u.TenantId == currentUser.TenantId);
+
+        if (existingUser == null)
+        {
+            Console.WriteLine(">>> MEDARBEJDER IKKE FUNDET <<<");
+            return NotFound();
+        }
+
+        // Kun Admin må slette andre Admin
+        if (!isAdmin && existingUser.Role == "Admin")
+        {
+            Console.WriteLine(">>> MANAGER MÅ IKKE SLETTE ADMIN <<<");
+            return Forbid();
+        }
+
+        // Manager må ikke slette sig selv
+        if (existingUser.Id == currentUser.Id)
+        {
+            Console.WriteLine(">>> MANAGER MÅ IKKE SLETTE SIG SELV <<<");
+            ModelState.AddModelError("", "Du kan ikke slette dig selv");
+            return Page();
+        }
+
+        Console.WriteLine($">>> SLETTER: {existingUser.FullName} <<<");
+
+        // Soft delete
+        existingUser.IsActive = false;
+
+        // Explicit mark as modified
+        _context.Entry(existingUser).State = EntityState.Modified;
+
+        var result = await _context.SaveChangesAsync();
+
+        Console.WriteLine($">>> SAVE CHANGES: {result} rækker påvirket <<<");
 
         return RedirectToPage("./Index");
     }

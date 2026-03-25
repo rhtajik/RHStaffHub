@@ -7,6 +7,11 @@
 <div class="container-fluid">
     <h1 class="mb-4">Mine Timer</h1>
 
+    <!-- GPS Status -->
+    <div id="gps-status" class="alert alert-info d-none">
+        <i class="bi bi-geo-alt"></i> <span id="gps-message">Finder din position...</span>
+    </div>
+
     <!-- Aktiv Clock-in Status -->
     @if (Model.ActiveEntry != null)
     {
@@ -14,8 +19,17 @@
             <h5><i class="bi bi-clock-history"></i> Du er clocket ind</h5>
             <p>Startet: @Model.ActiveEntry.ClockIn.ToString("HH:mm dd/MM-yyyy")</p>
             <p>Afdeling: @Model.ActiveEntry.Department?.Name</p>
-            <form method="post" asp-page-handler="ClockOut" class="d-inline">
-                <button type="submit" class="btn btn-danger">
+            @if (Model.ActiveEntry.ClockInLatitude.HasValue)
+            {
+                <p class="small text-muted">
+                    <i class="bi bi-geo-alt-fill"></i>
+                    GPS: @Model.ActiveEntry.ClockInLatitude.Value.ToString("F5"), @Model.ActiveEntry.ClockInLongitude.Value.ToString("F5")
+                </p>
+            }
+            <form method="post" asp-page-handler="ClockOut" class="d-inline" id="clockout-form">
+                <input type="hidden" name="Latitude" id="clockout-lat" />
+                <input type="hidden" name="Longitude" id="clockout-lng" />
+                <button type="submit" class="btn btn-danger" onclick="return getLocation('clockout');">
                     <i class="bi bi-box-arrow-right"></i> Clock Ud
                 </button>
             </form>
@@ -25,18 +39,29 @@
     {
         <div class="alert alert-success">
             <h5><i class="bi bi-clock"></i> Du er ikke clocket ind</h5>
-            <form method="post" asp-page-handler="ClockIn" class="row g-3">
+            <form method="post" asp-page-handler="ClockIn" class="row g-3" id="clockin-form">
                 <div class="col-md-4">
                     <select name="DepartmentId" class="form-select" asp-items="Model.Departments" required>
                         <option value="">Vælg afdeling...</option>
                     </select>
                 </div>
+                <input type="hidden" name="Latitude" id="clockin-lat" />
+                <input type="hidden" name="Longitude" id="clockin-lng" />
                 <div class="col-md-4">
-                    <button type="submit" class="btn btn-success">
+                    <button type="submit" class="btn btn-success" onclick="return getLocation('clockin');">
                         <i class="bi bi-box-arrow-in-right"></i> Clock Ind
                     </button>
                 </div>
             </form>
+            <small class="text-muted">Bemærk: Du skal være inden for afdelingens GPS radius for at checke ind</small>
+        </div>
+    }
+
+    <!-- Fejlvisning -->
+    @if (!string.IsNullOrEmpty(Model.GpsError))
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle"></i> @Model.GpsError
         </div>
     }
 
@@ -83,6 +108,7 @@
                         <th>Timer</th>
                         <th>Løn</th>
                         <th>Status</th>
+                        <th>GPS</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -107,6 +133,16 @@
                                     @entry.Status
                                 </span>
                             </td>
+                            <td>
+                                @if (entry.ClockInLatitude.HasValue)
+                                {
+                                    <i class="bi bi-geo-alt-fill text-success" title="GPS registreret"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-geo-alt text-muted" title="Ingen GPS"></i>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
@@ -120,3 +156,65 @@
         </div>
     }
 </div>
+
+@section Scripts {
+    <script>
+        function getLocation(type) {
+            var statusDiv = document.getElementById('gps-status');
+            var messageSpan = document.getElementById('gps-message');
+
+            statusDiv.classList.remove('d-none');
+            messageSpan.textContent = 'Finder din position...';
+
+            if (!navigator.geolocation) {
+                messageSpan.textContent = 'GPS er ikke understøttet i denne browser';
+                statusDiv.classList.remove('alert-info');
+                statusDiv.classList.add('alert-danger');
+                return false;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    // Succes
+                    document.getElementById(type + '-lat').value = position.coords.latitude;
+                    document.getElementById(type + '-lng').value = position.coords.longitude;
+
+                    messageSpan.textContent = 'Position fundet! (' + position.coords.latitude.toFixed(5) + ', ' + position.coords.longitude.toFixed(5) + ')';
+                    statusDiv.classList.remove('alert-info');
+                    statusDiv.classList.add('alert-success');
+
+                    // Indsend formularen
+                    document.getElementById(type + '-form').submit();
+                },
+                function(error) {
+                    // Fejl
+                    var errorMsg = 'Kunne ikke finde position: ';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMsg += "Du skal tillade adgang til GPS for at checke ind/ud.";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMsg += "Positionsinformation ikke tilgængelig.";
+                            break;
+                        case error.TIMEOUT:
+                            errorMsg += "Timeout ved hentning af position.";
+                            break;
+                        default:
+                            errorMsg += "Ukendt fejl.";
+                    }
+
+                    messageSpan.textContent = errorMsg;
+                    statusDiv.classList.remove('alert-info');
+                    statusDiv.classList.add('alert-danger');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+
+            return false; // Forhindre standard form submit
+        }
+    </script>
+}

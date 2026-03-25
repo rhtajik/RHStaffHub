@@ -8,26 +8,30 @@
     <h1 class="mb-4">Opret Ny Afdeling</h1>
 
     <div class="row">
-        <div class="col-md-6">
-            <form method="post">
+        <!-- Venstre kolonne: Form -->
+        <div class="col-md-5">
+            <form method="post" id="departmentForm">
                 @Html.AntiForgeryToken()
 
                 <div class="text-danger" asp-validation-summary="All"></div>
 
                 <div class="mb-3">
                     <label class="form-label">Navn *</label>
-                    <input asp-for="Department.Name" class="form-control" />
+                    <input asp-for="Department.Name" class="form-control" required />
                     <span asp-validation-for="Department.Name" class="text-danger"></span>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Beskrivelse</label>
-                    <textarea asp-for="Department.Description" class="form-control"></textarea>
+                    <textarea asp-for="Department.Description" class="form-control" rows="2"></textarea>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Adresse</label>
-                    <input asp-for="Department.Address" class="form-control" />
+                    <input asp-for="Department.Address" class="form-control" id="addressInput" />
+                    <button type="button" class="btn btn-sm btn-outline-primary mt-1" onclick="searchAddress()">
+                        <i class="bi bi-search"></i> Søg på kort
+                    </button>
                 </div>
 
                 <div class="mb-3">
@@ -35,20 +39,24 @@
                     <input asp-for="Department.LocationId" class="form-control" />
                 </div>
 
+                <hr />
+                <h6><i class="bi bi-geo-alt-fill text-danger"></i> GPS Clock-in Zone</h6>
+
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-6 mb-3">
                         <label class="form-label">Latitude</label>
-                        <input asp-for="Department.GpsLatitude" class="form-control" />
+                        <input asp-for="Department.GpsLatitude" class="form-control" id="latInput" step="any" />
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-6 mb-3">
                         <label class="form-label">Longitude</label>
-                        <input asp-for="Department.GpsLongitude" class="form-control" />
+                        <input asp-for="Department.GpsLongitude" class="form-control" id="lngInput" step="any" />
                     </div>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">Radius (meter)</label>
-                    <input asp-for="Department.GpsRadiusMeters" class="form-control" />
+                    <input asp-for="Department.GpsRadiusMeters" class="form-control" id="radiusInput" value="100" min="10" max="1000" />
+                    <small class="text-muted">Medarbejdere skal være inden for denne radius for at checke ind</small>
                 </div>
 
                 <div class="d-flex gap-2">
@@ -57,5 +65,153 @@
                 </div>
             </form>
         </div>
+
+        <!-- Højre kolonne: Kort -->
+        <div class="col-md-7">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="bi bi-map"></i> Vælg placering på kortet</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 500px; width: 100%;"></div>
+                </div>
+                <div class="card-footer text-muted small">
+                    <i class="bi bi-info-circle"></i> Klik på kortet for at sætte GPS position. Cirklen viser den tilladte radius for clock-in.
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+@section Scripts {
+    <!-- Leaflet CSS & JS (OpenStreetMap - Gratis) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        let map;
+        let marker;
+        let circle;
+
+        // Standard position (København)
+        const defaultLat = 55.6761;
+        const defaultLng = 12.5683;
+
+        function initMap() {
+            // Hent eksisterende værdier eller brug default
+            let lat = parseFloat(document.getElementById('latInput').value) || defaultLat;
+            let lng = parseFloat(document.getElementById('lngInput').value) || defaultLng;
+
+            // Opret kort
+            map = L.map('map').setView([lat, lng], 13);
+
+            // Tilføj OpenStreetMap tiles (gratis)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Tilføj marker og cirkel
+            updateMarker(lat, lng);
+
+            // Klik på kort for at sætte position
+            map.on('click', function(e) {
+                updateMarker(e.latlng.lat, e.latlng.lng);
+                updateForm(e.latlng.lat, e.latlng.lng);
+            });
+        }
+
+        function updateMarker(lat, lng) {
+            // Fjern eksisterende
+            if (marker) map.removeLayer(marker);
+            if (circle) map.removeLayer(circle);
+
+            // Tilføj ny marker
+            marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+
+            // Tilføj cirkel (radius)
+            let radius = parseInt(document.getElementById('radiusInput').value) || 100;
+            circle = L.circle([lat, lng], {
+                color: 'red',
+                fillColor: '#f03',
+                fillOpacity: 0.2,
+                radius: radius
+            }).addTo(map);
+
+            // Marker kan trækkes
+            marker.on('dragend', function(e) {
+                let pos = e.target.getLatLng();
+                updateForm(pos.lat, pos.lng);
+                updateCircle(pos.lat, pos.lng);
+            });
+        }
+
+        function updateCircle(lat, lng) {
+            if (circle) map.removeLayer(circle);
+            let radius = parseInt(document.getElementById('radiusInput').value) || 100;
+            circle = L.circle([lat, lng], {
+                color: 'red',
+                fillColor: '#f03',
+                fillOpacity: 0.2,
+                radius: radius
+            }).addTo(map);
+        }
+
+        function updateForm(lat, lng) {
+            document.getElementById('latInput').value = lat.toFixed(6);
+            document.getElementById('lngInput').value = lng.toFixed(6);
+        }
+
+        // Opdater cirkel når radius ændres
+        document.getElementById('radiusInput').addEventListener('change', function() {
+            let lat = parseFloat(document.getElementById('latInput').value);
+            let lng = parseFloat(document.getElementById('lngInput').value);
+            if (lat && lng) {
+                updateCircle(lat, lng);
+            }
+        });
+
+        // Opdater cirkel når koordinater ændres manuelt
+        document.getElementById('latInput').addEventListener('change', updateFromForm);
+        document.getElementById('lngInput').addEventListener('change', updateFromForm);
+
+        function updateFromForm() {
+            let lat = parseFloat(document.getElementById('latInput').value);
+            let lng = parseFloat(document.getElementById('lngInput').value);
+            if (lat && lng) {
+                updateMarker(lat, lng);
+                map.setView([lat, lng], 15);
+            }
+        }
+
+        // Søg adresse (simpel - bruger browser geocoding hvis muligt)
+        function searchAddress() {
+            let address = document.getElementById('addressInput').value;
+            if (!address) {
+                alert('Indtast en adresse først');
+                return;
+            }
+
+            // Brug Nominatim (OpenStreetMap geocoding - gratis)
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        let lat = parseFloat(data[0].lat);
+                        let lng = parseFloat(data[0].lon);
+                        updateMarker(lat, lng);
+                        updateForm(lat, lng);
+                        map.setView([lat, lng], 16);
+                    } else {
+                        alert('Adresse ikke fundet. Prøv at vælge manuelt på kortet.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Kunne ikke søge efter adresse. Vælg manuelt på kortet.');
+                });
+        }
+
+        // Initialiser kort når siden loader
+        document.addEventListener('DOMContentLoaded', initMap);
+    </script>
+}

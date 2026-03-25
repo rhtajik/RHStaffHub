@@ -30,8 +30,9 @@ public class IndexModel : PageModel
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null) return;
 
+        // FILTRER: Kun aktive afdelinger
         Departments = await _context.Departments
-            .Where(d => d.TenantId == user.TenantId)
+            .Where(d => d.TenantId == user.TenantId && d.IsActive == true)  // <-- TILFØJET: && d.IsActive == true
             .OrderBy(d => d.Name)
             .ToListAsync();
     }

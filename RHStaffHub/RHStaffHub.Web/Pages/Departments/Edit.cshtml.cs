@@ -24,6 +24,10 @@ public class EditModel : PageModel
     [BindProperty]
     public Department Department { get; set; } = new();
 
+    // Separat property til Delete handler
+    [BindProperty(Name = "Department.Id")]
+    public Guid DeleteDepartmentId { get; set; }
+
     public async Task<IActionResult> OnGetAsync(Guid id)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -33,6 +37,7 @@ public class EditModel : PageModel
         if (user == null) return RedirectToPage("/Account/Login");
 
         Department = await _context.Departments
+            .AsNoTracking()
             .FirstOrDefaultAsync(d => d.Id == id && d.TenantId == user.TenantId);
 
         if (Department == null)
@@ -43,8 +48,20 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        // Fjern ModelState fejl for navigation properties
+        ModelState.Remove("Department.Company");
+        ModelState.Remove("Department.Employees");
+        ModelState.Remove("Department.Shifts");
+        ModelState.Remove("Department.TimeEntries");
+
         if (!ModelState.IsValid)
+        {
+            foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+            {
+                Console.WriteLine($"ModelError: {error.ErrorMessage}");
+            }
             return Page();
+        }
 
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return RedirectToPage("/Account/Login");
@@ -76,21 +93,37 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnPostDeleteAsync()
     {
+        Console.WriteLine($">>> DELETE STARTET - ID: {DeleteDepartmentId} <<<");
+
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (userId == null) return RedirectToPage("/Account/Login");
 
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null) return RedirectToPage("/Account/Login");
 
+        // Find afdeling direkte på ID - BRUG AsNoTracking() = false (default)
         var existing = await _context.Departments
-            .FirstOrDefaultAsync(d => d.Id == Department.Id && d.TenantId == user.TenantId);
+            .FirstOrDefaultAsync(d => d.Id == DeleteDepartmentId && d.TenantId == user.TenantId);
 
         if (existing == null)
+        {
+            Console.WriteLine(">>> AFDELING IKKE FUNDET <<<");
             return NotFound();
+        }
+
+        Console.WriteLine($">>> SLETTER: {existing.Name}, IsActive={existing.IsActive} <<<");
 
         // Soft delete
         existing.IsActive = false;
-        await _context.SaveChangesAsync();
+
+        // Explicit mark as modified
+        _context.Entry(existing).State = EntityState.Modified;
+
+        Console.WriteLine($">>> EF STATE: {_context.Entry(existing).State} <<<");
+
+        var result = await _context.SaveChangesAsync();
+
+        Console.WriteLine($">>> SAVE CHANGES RESULT: {result} rækker påvirket <<<");
 
         return RedirectToPage("./Index");
     }

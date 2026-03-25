@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using RHStaffHub.Domain.Entities;
@@ -21,18 +22,29 @@ public class IndexModel : PageModel
     }
 
     public List<ApplicationUser> Employees { get; set; } = new();
+    public bool ShowInactive { get; set; }
 
-    public async Task OnGetAsync()
+    public async Task OnGetAsync(bool showInactive = false)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId == null) return;
+        ShowInactive = showInactive;
 
-        var user = await _userManager.FindByIdAsync(userId);
-        if (user == null) return;
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (currentUserId == null) return;
 
-        Employees = await _context.Users
+        var currentUser = await _userManager.FindByIdAsync(currentUserId);
+        if (currentUser == null) return;
+
+        // Filtrer baseret på showInactive parameter
+        var query = _context.Users
             .Include(u => u.PrimaryDepartment)
-            .Where(u => u.TenantId == user.TenantId && u.Id != user.Id) // Vis ikke sig selv
+            .Where(u => u.TenantId == currentUser.TenantId);
+
+        if (!showInactive)
+        {
+            query = query.Where(u => u.IsActive);
+        }
+
+        Employees = await query
             .OrderBy(u => u.LastName)
             .ToListAsync();
     }
